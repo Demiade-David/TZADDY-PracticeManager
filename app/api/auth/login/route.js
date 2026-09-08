@@ -14,7 +14,7 @@ export async function POST(request) {
       email: email.trim().toLowerCase(),
     });
 
-    if (!user) {
+    if (!user || !user.active) {
       return NextResponse.json(
         { error: "USER_NOT_FOUND" },
         { status: 401 }
@@ -53,7 +53,7 @@ export async function POST(request) {
 
     response.cookies.set("tpm_token", token, {
       httpOnly: true,
-      secure: false,
+     secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
       maxAge: 60 * 60 * 24 * 7,
       path: "/",
