@@ -2,13 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 
-import {
-  CreditCard,
-  Plus,
-  Search,
-  X,
-  CheckCircle2,
-} from "lucide-react";
+import { CreditCard, Plus, Search, X, CheckCircle2 } from "lucide-react";
 
 export default function PaymentsPage() {
   const [invoices, setInvoices] = useState([]);
@@ -18,14 +12,11 @@ export default function PaymentsPage() {
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("All");
 
-  const [showInvoiceModal, setShowInvoiceModal] =
-    useState(false);
+  const [showInvoiceModal, setShowInvoiceModal] = useState(false);
 
-  const [showPaymentModal, setShowPaymentModal] =
-    useState(false);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
 
-  const [selectedInvoice, setSelectedInvoice] =
-    useState(null);
+  const [selectedInvoice, setSelectedInvoice] = useState(null);
 
   const [loading, setLoading] = useState(true);
 
@@ -51,105 +42,53 @@ export default function PaymentsPage() {
 
   async function loadData() {
     try {
-      const [
-        invoicesResponse,
-        clientsResponse,
-        engagementsResponse,
-      ] = await Promise.all([
-        fetch("/api/invoices"),
-        fetch("/api/clients"),
-        fetch("/api/engagements"),
-      ]);
+      setLoading(true);
+
+      const [invoicesResponse, clientsResponse, engagementsResponse] =
+        await Promise.all([
+          fetch("/api/invoices"),
+          fetch("/api/clients"),
+          fetch("/api/engagements"),
+        ]);
 
       const invoicesData = await invoicesResponse.json();
       const clientsData = await clientsResponse.json();
-      const engagementsData =
-        await engagementsResponse.json();
+      const engagementsData = await engagementsResponse.json();
 
-      setInvoices(
-        Array.isArray(invoicesData)
-          ? invoicesData
-          : []
-      );
+      if (!invoicesResponse.ok) {
+        throw new Error(invoicesData.error || "Unable to load invoices");
+      }
 
-      setClients(
-        Array.isArray(clientsData)
-          ? clientsData
-          : []
-      );
+      if (!clientsResponse.ok) {
+        throw new Error(clientsData.error || "Unable to load clients");
+      }
 
-      setEngagements(
-        Array.isArray(engagementsData)
-          ? engagementsData
-          : []
-      );
+      if (!engagementsResponse.ok) {
+        throw new Error(engagementsData.error || "Unable to load engagements");
+      }
+
+      setInvoices(invoicesData);
+      setClients(clientsData);
+      setEngagements(engagementsData);
     } catch (error) {
-      console.error(
-        "Unable to load payment data:",
-        error
-      );
+      console.error("Unable to load payment data:", error);
     } finally {
       setLoading(false);
     }
   }
 
   useEffect(() => {
-    let cancelled = false;
-
-    Promise.all([
-      fetch("/api/invoices"),
-      fetch("/api/clients"),
-      fetch("/api/engagements"),
-    ])
-      .then((responses) =>
-        Promise.all(
-          responses.map((response) => response.json())
-        )
-      )
-      .then(([invoicesData, clientsData, engagementsData]) => {
-        if (cancelled) {
-          return;
-        }
-
-        setInvoices(
-          Array.isArray(invoicesData) ? invoicesData : []
-        );
-
-        setClients(
-          Array.isArray(clientsData) ? clientsData : []
-        );
-
-        setEngagements(
-          Array.isArray(engagementsData)
-            ? engagementsData
-            : []
-        );
-      })
-      .catch((error) => {
-        console.error(
-          "Unable to load payment data:",
-          error
-        );
-      })
-      .finally(() => {
-        if (!cancelled) {
-          setLoading(false);
-        }
-      });
-
-    return () => {
-      cancelled = true;
+    const loadInitialData = async () => {
+      await loadData();
     };
-  }, []);
 
+    loadInitialData();
+  }, []);
   const filteredInvoices = useMemo(() => {
     let result = [...invoices];
 
     if (filter !== "All") {
-      result = result.filter(
-        (invoice) =>
-          invoice.status === filter
-      );
+      result = result.filter((invoice) => invoice.status === filter);
     }
 
     const query = search.toLowerCase().trim();
@@ -157,15 +96,9 @@ export default function PaymentsPage() {
     if (query) {
       result = result.filter((invoice) => {
         return (
-          invoice.invoiceNumber
-            ?.toLowerCase()
-            .includes(query) ||
-          invoice.description
-            ?.toLowerCase()
-            .includes(query) ||
-          invoice.client?.name
-            ?.toLowerCase()
-            .includes(query)
+          invoice.invoiceNumber?.toLowerCase().includes(query) ||
+          invoice.description?.toLowerCase().includes(query) ||
+          invoice.client?.name?.toLowerCase().includes(query)
         );
       });
     }
@@ -175,27 +108,23 @@ export default function PaymentsPage() {
 
   const totals = useMemo(() => {
     const activeInvoices = invoices.filter(
-      (invoice) =>
-        invoice.status !== "Cancelled"
+      (invoice) => invoice.status !== "Cancelled",
     );
 
     const totalInvoiced = activeInvoices.reduce(
-      (sum, invoice) =>
-        sum + (invoice.amount || 0),
-      0
+      (sum, invoice) => sum + (invoice.amount || 0),
+      0,
     );
 
     const totalPaid = activeInvoices.reduce(
-      (sum, invoice) =>
-        sum + (invoice.amountPaid || 0),
-      0
+      (sum, invoice) => sum + (invoice.amountPaid || 0),
+      0,
     );
 
     return {
       totalInvoiced,
       totalPaid,
-      outstanding:
-        totalInvoiced - totalPaid,
+      outstanding: totalInvoiced - totalPaid,
     };
   }, [invoices]);
 
@@ -245,44 +174,34 @@ export default function PaymentsPage() {
     e.preventDefault();
 
     try {
-      const response = await fetch(
-        "/api/invoices",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(invoiceForm),
-        }
-      );
+      const response = await fetch("/api/invoices", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(invoiceForm),
+      });
 
       const data = await response.json();
 
+      console.log("CREATE INVOICE STATUS:", response.status);
+      console.log("CREATE INVOICE RESPONSE:", data);
+
       if (!response.ok) {
-        alert(
-          data.error ||
-            "Unable to create invoice"
-        );
+        alert(data.error || "Unable to create invoice");
         return;
       }
 
-      setInvoices((current) => [
-        data,
-        ...current,
-      ]);
+      // Reload invoices directly from MongoDB
+      await loadData();
 
       resetInvoiceForm();
       setShowInvoiceModal(false);
     } catch (error) {
-      console.error(
-        "Create invoice error:",
-        error
-      );
-
-      alert("Something went wrong.");
+      console.error("Create invoice error:", error);
+      alert("Something went wrong while creating the invoice.");
     }
   }
-
   async function handleRecordPayment(e) {
     e.preventDefault();
 
@@ -290,57 +209,43 @@ export default function PaymentsPage() {
       return;
     }
 
-    const amount = Number(
-      paymentForm.amount
+    const amount = Number(paymentForm.amount);
+
+    const outstanding = Math.max(
+      0,
+      (selectedInvoice.amount || 0) - (selectedInvoice.amountPaid || 0),
     );
 
-    const outstanding =
-      Math.max(
-        0,
-        (selectedInvoice.amount || 0) -
-          (selectedInvoice.amountPaid || 0)
-      );
-
     if (amount <= 0) {
-      alert(
-        "Payment amount must be greater than zero."
-      );
+      alert("Payment amount must be greater than zero.");
       return;
     }
 
     if (amount > outstanding) {
       alert(
         `Payment cannot exceed the outstanding balance of ${formatCurrency(
-          outstanding
-        )}.`
+          outstanding,
+        )}.`,
       );
       return;
     }
 
     try {
-      const response = await fetch(
-        "/api/payments",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type":
-              "application/json",
-          },
-          body: JSON.stringify({
-            invoice:
-              selectedInvoice._id,
-            ...paymentForm,
-          }),
-        }
-      );
+      const response = await fetch("/api/payments", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          invoice: selectedInvoice._id,
+          ...paymentForm,
+        }),
+      });
 
       const data = await response.json();
 
       if (!response.ok) {
-        alert(
-          data.error ||
-            "Unable to record payment"
-        );
+        alert(data.error || "Unable to record payment");
         return;
       }
 
@@ -350,36 +255,24 @@ export default function PaymentsPage() {
       setSelectedInvoice(null);
       setShowPaymentModal(false);
     } catch (error) {
-      console.error(
-        "Record payment error:",
-        error
-      );
+      console.error("Record payment error:", error);
 
       alert("Something went wrong.");
     }
   }
 
   function openPaymentModal(invoice) {
-    const outstanding =
-      Math.max(
-        0,
-        (invoice.amount || 0) -
-          (invoice.amountPaid || 0)
-      );
+    const outstanding = Math.max(
+      0,
+      (invoice.amount || 0) - (invoice.amountPaid || 0),
+    );
 
     setSelectedInvoice(invoice);
 
     setPaymentForm({
-      amount:
-        outstanding > 0
-          ? String(outstanding)
-          : "",
-      paymentDate:
-        new Date()
-          .toISOString()
-          .split("T")[0],
-      paymentMethod:
-        "Bank Transfer",
+      amount: outstanding > 0 ? String(outstanding) : "",
+      paymentDate: new Date().toISOString().split("T")[0],
+      paymentMethod: "Bank Transfer",
       reference: "",
       notes: "",
     });
@@ -388,57 +281,39 @@ export default function PaymentsPage() {
   }
 
   function formatCurrency(amount) {
-    return new Intl.NumberFormat(
-      "en-NG",
-      {
-        style: "currency",
-        currency: "NGN",
-        maximumFractionDigits: 0,
-      }
-    ).format(amount || 0);
+    return new Intl.NumberFormat("en-NG", {
+      style: "currency",
+      currency: "NGN",
+      maximumFractionDigits: 0,
+    }).format(amount || 0);
   }
 
   function formatDate(date) {
     if (!date) return "—";
 
-    return new Date(
-      date
-    ).toLocaleDateString();
+    return new Date(date).toLocaleDateString();
   }
 
   function getOutstanding(invoice) {
-    return Math.max(
-      0,
-      (invoice.amount || 0) -
-        (invoice.amountPaid || 0)
-    );
+    return Math.max(0, (invoice.amount || 0) - (invoice.amountPaid || 0));
   }
 
   function getStatusClass(status) {
     const classes = {
-      Draft:
-        "bg-slate-100 text-slate-700",
+      Draft: "bg-slate-100 text-slate-700",
 
-      Sent:
-        "bg-blue-50 text-blue-700",
+      Sent: "bg-blue-50 text-blue-700",
 
-      "Partially Paid":
-        "bg-amber-50 text-amber-700",
+      "Partially Paid": "bg-amber-50 text-amber-700",
 
-      Paid:
-        "bg-green-50 text-green-700",
+      Paid: "bg-green-50 text-green-700",
 
-      Overdue:
-        "bg-red-50 text-red-700",
+      Overdue: "bg-red-50 text-red-700",
 
-      Cancelled:
-        "bg-slate-100 text-slate-500",
+      Cancelled: "bg-slate-100 text-slate-500",
     };
 
-    return (
-      classes[status] ||
-      "bg-slate-100 text-slate-700"
-    );
+    return classes[status] || "bg-slate-100 text-slate-700";
   }
 
   return (
@@ -451,16 +326,13 @@ export default function PaymentsPage() {
             </h1>
 
             <p className="mt-1 text-sm text-slate-500">
-              Manage invoices, payments and
-              outstanding balances.
+              Manage invoices, payments and outstanding balances.
             </p>
           </div>
 
           <div className="flex gap-3">
             <button
-              onClick={() =>
-                setShowInvoiceModal(true)
-              }
+              onClick={() => setShowInvoiceModal(true)}
               className="inline-flex items-center justify-center gap-2 rounded-lg bg-slate-900 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-slate-800"
             >
               <Plus size={18} />
@@ -473,38 +345,26 @@ export default function PaymentsPage() {
       <div className="p-6 lg:p-8">
         <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
           <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-            <p className="text-sm text-slate-500">
-              Total Invoiced
-            </p>
+            <p className="text-sm text-slate-500">Total Invoiced</p>
 
             <p className="mt-2 text-2xl font-bold text-slate-900">
-              {formatCurrency(
-                totals.totalInvoiced
-              )}
+              {formatCurrency(totals.totalInvoiced)}
             </p>
           </div>
 
           <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-            <p className="text-sm text-slate-500">
-              Total Paid
-            </p>
+            <p className="text-sm text-slate-500">Total Paid</p>
 
             <p className="mt-2 text-2xl font-bold text-green-700">
-              {formatCurrency(
-                totals.totalPaid
-              )}
+              {formatCurrency(totals.totalPaid)}
             </p>
           </div>
 
           <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-            <p className="text-sm text-slate-500">
-              Outstanding
-            </p>
+            <p className="text-sm text-slate-500">Outstanding</p>
 
             <p className="mt-2 text-2xl font-bold text-red-700">
-              {formatCurrency(
-                totals.outstanding
-              )}
+              {formatCurrency(totals.outstanding)}
             </p>
           </div>
         </div>
@@ -522,9 +382,7 @@ export default function PaymentsPage() {
             ].map((status) => (
               <button
                 key={status}
-                onClick={() =>
-                  setFilter(status)
-                }
+                onClick={() => setFilter(status)}
                 className={`rounded-lg px-3 py-2 text-sm font-medium transition ${
                   filter === status
                     ? "bg-slate-900 text-white"
@@ -537,18 +395,13 @@ export default function PaymentsPage() {
           </div>
 
           <div className="flex w-full items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 lg:max-w-sm">
-            <Search
-              size={19}
-              className="text-slate-400"
-            />
+            <Search size={19} className="text-slate-400" />
 
             <input
               type="text"
               placeholder="Search invoices or clients..."
               value={search}
-              onChange={(e) =>
-                setSearch(e.target.value)
-              }
+              onChange={(e) => setSearch(e.target.value)}
               className="w-full bg-transparent text-sm outline-none"
             />
           </div>
@@ -559,21 +412,16 @@ export default function PaymentsPage() {
             <div className="p-8 text-center text-sm text-slate-500">
               Loading invoices...
             </div>
-          ) : filteredInvoices.length ===
-            0 ? (
+          ) : filteredInvoices.length === 0 ? (
             <div className="p-12 text-center">
-              <CreditCard
-                size={40}
-                className="mx-auto text-slate-300"
-              />
+              <CreditCard size={40} className="mx-auto text-slate-300" />
 
               <h3 className="mt-4 font-semibold text-slate-900">
                 No invoices found
               </h3>
 
               <p className="mt-1 text-sm text-slate-500">
-                Create an invoice to start
-                tracking billing.
+                Create an invoice to start tracking billing.
               </p>
             </div>
           ) : (
@@ -616,100 +464,112 @@ export default function PaymentsPage() {
                 </thead>
 
                 <tbody className="divide-y divide-slate-100">
-                  {filteredInvoices.map(
-                    (invoice) => (
-                      <tr
-                        key={invoice._id}
-                        className="hover:bg-slate-50"
-                      >
-                        <td className="px-5 py-4">
-                          <p className="font-medium text-slate-900">
-                            {
-                              invoice.invoiceNumber
-                            }
-                          </p>
+                  {filteredInvoices.map((invoice) => (
+                    <tr key={invoice._id} className="hover:bg-slate-50">
+                      <td className="px-5 py-4">
+                        <p className="font-medium text-slate-900">
+                          {invoice.invoiceNumber}
+                        </p>
 
-                          <p className="mt-1 text-xs text-slate-500">
-                            {
-                              invoice.description
-                            }
-                          </p>
-                        </td>
+                        <p className="mt-1 text-xs text-slate-500">
+                          {invoice.description}
+                        </p>
+                      </td>
 
-                        <td className="px-5 py-4 text-sm text-slate-700">
-                          {
-                            invoice.client
-                              ?.name || "—"
-                          }
-                        </td>
+                      <td className="px-5 py-4 text-sm text-slate-700">
+                        {invoice.client?.name || "—"}
+                      </td>
 
-                        <td className="px-5 py-4 text-sm text-slate-500">
-                          {formatDate(
-                            invoice.dueDate
-                          )}
-                        </td>
+                      <td className="px-5 py-4 text-sm text-slate-500">
+                        {formatDate(invoice.dueDate)}
+                      </td>
 
-                        <td className="px-5 py-4 text-sm font-medium text-slate-900">
-                          {formatCurrency(
-                            invoice.amount
-                          )}
-                        </td>
+                      <td className="px-5 py-4 text-sm font-medium text-slate-900">
+                        {formatCurrency(invoice.amount)}
+                      </td>
 
-                        <td className="px-5 py-4 text-sm font-medium text-green-700">
-                          {formatCurrency(
-                            invoice.amountPaid
-                          )}
-                        </td>
+                      <td className="px-5 py-4 text-sm font-medium text-green-700">
+                        {formatCurrency(invoice.amountPaid)}
+                      </td>
 
-                        <td className="px-5 py-4 text-sm font-medium text-red-700">
-                          {formatCurrency(
-                            getOutstanding(
-                              invoice
-                            )
-                          )}
-                        </td>
+                      <td className="px-5 py-4 text-sm font-medium text-red-700">
+                        {formatCurrency(getOutstanding(invoice))}
+                      </td>
 
-                        <td className="px-5 py-4">
-                          <span
-                            className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${getStatusClass(
-                              invoice.status
-                            )}`}
-                          >
-                            {
-                              invoice.status
-                            }
-                          </span>
-                        </td>
+                      <td className="px-5 py-4">
+                        <select
+                          value={invoice.status}
+                          onChange={async (e) => {
+                            const newStatus = e.target.value;
 
-                        <td className="px-5 py-4">
-                          {getOutstanding(
-                            invoice
-                          ) > 0 &&
-                          invoice.status !==
-                            "Cancelled" ? (
-                            <button
-                              onClick={() =>
-                                openPaymentModal(
-                                  invoice
-                                )
+                            try {
+                              const response = await fetch("/api/invoices", {
+                                method: "PATCH",
+                                headers: {
+                                  "Content-Type": "application/json",
+                                },
+                                body: JSON.stringify({
+                                  id: invoice._id,
+                                  status: newStatus,
+                                }),
+                              });
+
+                              const data = await response.json();
+
+                              if (!response.ok) {
+                                alert(
+                                  data.error ||
+                                    "Unable to update invoice status",
+                                );
+                                return;
                               }
-                              className="text-sm font-medium text-green-700 hover:underline"
-                            >
-                              Record Payment
-                            </button>
-                          ) : invoice.status ===
-                            "Paid" ? (
-                            <span className="inline-flex items-center gap-1 text-sm text-green-600">
-                              <CheckCircle2
-                                size={15}
-                              />
-                              Paid
-                            </span>
-                          ) : null}
-                        </td>
-                      </tr>
-                    )
-                  )}
+
+                              setInvoices((current) =>
+                                current.map((item) =>
+                                  item._id === invoice._id ? data : item,
+                                ),
+                              );
+                            } catch (error) {
+                              console.error(
+                                "Update invoice status error:",
+                                error,
+                              );
+
+                              alert(
+                                "Something went wrong while updating the status.",
+                              );
+                            }
+                          }}
+                          className={`rounded-lg border border-slate-200 px-3 py-2 text-xs font-medium outline-none ${getStatusClass(
+                            invoice.status,
+                          )}`}
+                        >
+                          <option value="Draft">Draft</option>
+                          <option value="Sent">Sent</option>
+                          <option value="Partially Paid">Partially Paid</option>
+                          <option value="Paid">Paid</option>
+                          <option value="Overdue">Overdue</option>
+                          <option value="Cancelled">Cancelled</option>
+                        </select>
+                      </td>
+                      <td className="px-5 py-4">
+                        {getOutstanding(invoice) > 0 &&
+                        invoice.status !== "Cancelled" ? (
+                          <button
+                            onClick={() => openPaymentModal(invoice)}
+                            className="text-sm font-medium text-green-700 hover:underline"
+                          >
+                            Record Payment
+                          </button>
+                        ) : invoice.status === "Paid" ? (
+                          <span className="inline-flex items-center gap-1 text-sm text-green-600">
+                            <CheckCircle2 size={15} />
+                            Paid
+                          </span>
+                        ) : null}
+                      </td>
+                    </tr>
+                  ))}
                 </tbody>
               </table>
             </div>
@@ -729,8 +589,7 @@ export default function PaymentsPage() {
                 </h2>
 
                 <p className="mt-1 text-sm text-slate-500">
-                  Create a billing record for a
-                  client.
+                  Create a billing record for a client.
                 </p>
               </div>
 
@@ -745,10 +604,7 @@ export default function PaymentsPage() {
               </button>
             </div>
 
-            <form
-              onSubmit={handleCreateInvoice}
-              className="space-y-5 p-6"
-            >
+            <form onSubmit={handleCreateInvoice} className="space-y-5 p-6">
               <div className="grid gap-5 sm:grid-cols-2">
                 <div>
                   <label className="block text-sm font-medium text-slate-700">
@@ -759,25 +615,16 @@ export default function PaymentsPage() {
                     name="client"
                     required
                     value={invoiceForm.client}
-                    onChange={
-                      handleInvoiceChange
-                    }
+                    onChange={handleInvoiceChange}
                     className="mt-2 w-full rounded-lg border border-slate-300 px-4 py-3 outline-none focus:border-slate-900"
                   >
-                    <option value="">
-                      Select client
-                    </option>
+                    <option value="">Select client</option>
 
-                    {clients.map(
-                      (client) => (
-                        <option
-                          key={client._id}
-                          value={client._id}
-                        >
-                          {client.name}
-                        </option>
-                      )
-                    )}
+                    {clients.map((client) => (
+                      <option key={client._id} value={client._id}>
+                        {client.name}
+                      </option>
+                    ))}
                   </select>
                 </div>
 
@@ -788,36 +635,17 @@ export default function PaymentsPage() {
 
                   <select
                     name="engagement"
-                    value={
-                      invoiceForm.engagement
-                    }
-                    onChange={
-                      handleInvoiceChange
-                    }
+                    value={invoiceForm.engagement}
+                    onChange={handleInvoiceChange}
                     className="mt-2 w-full rounded-lg border border-slate-300 px-4 py-3 outline-none focus:border-slate-900"
                   >
-                    <option value="">
-                      None
-                    </option>
+                    <option value="">None</option>
 
-                    {engagements.map(
-                      (engagement) => (
-                        <option
-                          key={
-                            engagement._id
-                          }
-                          value={
-                            engagement._id
-                          }
-                        >
-                          {engagement.name} —{" "}
-                          {
-                            engagement.client
-                              ?.name
-                          }
-                        </option>
-                      )
-                    )}
+                    {engagements.map((engagement) => (
+                      <option key={engagement._id} value={engagement._id}>
+                        {engagement.name} — {engagement.client?.name}
+                      </option>
+                    ))}
                   </select>
                 </div>
               </div>
@@ -831,12 +659,8 @@ export default function PaymentsPage() {
                   <input
                     name="invoiceNumber"
                     required
-                    value={
-                      invoiceForm.invoiceNumber
-                    }
-                    onChange={
-                      handleInvoiceChange
-                    }
+                    value={invoiceForm.invoiceNumber}
+                    onChange={handleInvoiceChange}
                     placeholder="INV-0001"
                     className="mt-2 w-full rounded-lg border border-slate-300 px-4 py-3 outline-none focus:border-slate-900"
                   />
@@ -852,12 +676,8 @@ export default function PaymentsPage() {
                     type="number"
                     min="0"
                     required
-                    value={
-                      invoiceForm.amount
-                    }
-                    onChange={
-                      handleInvoiceChange
-                    }
+                    value={invoiceForm.amount}
+                    onChange={handleInvoiceChange}
                     placeholder="500000"
                     className="mt-2 w-full rounded-lg border border-slate-300 px-4 py-3 outline-none focus:border-slate-900"
                   />
@@ -872,12 +692,8 @@ export default function PaymentsPage() {
                 <input
                   name="description"
                   required
-                  value={
-                    invoiceForm.description
-                  }
-                  onChange={
-                    handleInvoiceChange
-                  }
+                  value={invoiceForm.description}
+                  onChange={handleInvoiceChange}
                   placeholder="Professional accounting services"
                   className="mt-2 w-full rounded-lg border border-slate-300 px-4 py-3 outline-none focus:border-slate-900"
                 />
@@ -892,12 +708,8 @@ export default function PaymentsPage() {
                   <input
                     name="invoiceDate"
                     type="date"
-                    value={
-                      invoiceForm.invoiceDate
-                    }
-                    onChange={
-                      handleInvoiceChange
-                    }
+                    value={invoiceForm.invoiceDate}
+                    onChange={handleInvoiceChange}
                     className="mt-2 w-full rounded-lg border border-slate-300 px-4 py-3 outline-none focus:border-slate-900"
                   />
                 </div>
@@ -911,12 +723,8 @@ export default function PaymentsPage() {
                     name="dueDate"
                     type="date"
                     required
-                    value={
-                      invoiceForm.dueDate
-                    }
-                    onChange={
-                      handleInvoiceChange
-                    }
+                    value={invoiceForm.dueDate}
+                    onChange={handleInvoiceChange}
                     className="mt-2 w-full rounded-lg border border-slate-300 px-4 py-3 outline-none focus:border-slate-900"
                   />
                 </div>
@@ -929,21 +737,13 @@ export default function PaymentsPage() {
 
                 <select
                   name="status"
-                  value={
-                    invoiceForm.status
-                  }
-                  onChange={
-                    handleInvoiceChange
-                  }
+                  value={invoiceForm.status}
+                  onChange={handleInvoiceChange}
                   className="mt-2 w-full rounded-lg border border-slate-300 px-4 py-3 outline-none focus:border-slate-900"
                 >
-                  <option value="Draft">
-                    Draft
-                  </option>
+                  <option value="Draft">Draft</option>
 
-                  <option value="Sent">
-                    Sent
-                  </option>
+                  <option value="Sent">Sent</option>
                 </select>
               </div>
 
@@ -954,12 +754,8 @@ export default function PaymentsPage() {
 
                 <textarea
                   name="notes"
-                  value={
-                    invoiceForm.notes
-                  }
-                  onChange={
-                    handleInvoiceChange
-                  }
+                  value={invoiceForm.notes}
+                  onChange={handleInvoiceChange}
                   rows={3}
                   placeholder="Optional notes"
                   className="mt-2 w-full rounded-lg border border-slate-300 px-4 py-3 outline-none focus:border-slate-900"
@@ -970,9 +766,7 @@ export default function PaymentsPage() {
                 <button
                   type="button"
                   onClick={() => {
-                    setShowInvoiceModal(
-                      false
-                    );
+                    setShowInvoiceModal(false);
                     resetInvoiceForm();
                   }}
                   className="rounded-lg border border-slate-300 px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
@@ -994,239 +788,173 @@ export default function PaymentsPage() {
 
       {/* RECORD PAYMENT MODAL */}
 
-      {showPaymentModal &&
-        selectedInvoice && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
-            <div className="w-full max-w-lg rounded-2xl bg-white shadow-2xl">
-              <div className="flex items-center justify-between border-b px-6 py-5">
-                <div>
-                  <h2 className="text-lg font-semibold text-slate-900">
-                    Record Payment
-                  </h2>
+      {showPaymentModal && selectedInvoice && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+          <div className="w-full max-w-lg rounded-2xl bg-white shadow-2xl">
+            <div className="flex items-center justify-between border-b px-6 py-5">
+              <div>
+                <h2 className="text-lg font-semibold text-slate-900">
+                  Record Payment
+                </h2>
 
-                  <p className="mt-1 text-sm text-slate-500">
-                    {
-                      selectedInvoice.invoiceNumber
-                    }{" "}
-                    ·{" "}
-                    {
-                      selectedInvoice.client
-                        ?.name
-                    }
-                  </p>
-                </div>
-
-                <button
-                  onClick={() => {
-                    setShowPaymentModal(
-                      false
-                    );
-                    setSelectedInvoice(
-                      null
-                    );
-                    resetPaymentForm();
-                  }}
-                  className="rounded-lg p-2 text-slate-500 hover:bg-slate-100"
-                >
-                  <X size={20} />
-                </button>
+                <p className="mt-1 text-sm text-slate-500">
+                  {selectedInvoice.invoiceNumber} ·{" "}
+                  {selectedInvoice.client?.name}
+                </p>
               </div>
 
-              <form
-                onSubmit={
-                  handleRecordPayment
-                }
-                className="space-y-5 p-6"
+              <button
+                onClick={() => {
+                  setShowPaymentModal(false);
+                  setSelectedInvoice(null);
+                  resetPaymentForm();
+                }}
+                className="rounded-lg p-2 text-slate-500 hover:bg-slate-100"
               >
-                <div className="rounded-xl bg-slate-50 p-4">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-slate-500">
-                      Invoice amount
-                    </span>
-
-                    <span className="font-medium text-slate-900">
-                      {formatCurrency(
-                        selectedInvoice.amount
-                      )}
-                    </span>
-                  </div>
-
-                  <div className="mt-2 flex justify-between text-sm">
-                    <span className="text-slate-500">
-                      Already paid
-                    </span>
-
-                    <span className="font-medium text-green-700">
-                      {formatCurrency(
-                        selectedInvoice.amountPaid
-                      )}
-                    </span>
-                  </div>
-
-                  <div className="mt-3 flex justify-between border-t pt-3">
-                    <span className="font-medium text-slate-700">
-                      Outstanding
-                    </span>
-
-                    <span className="font-bold text-red-700">
-                      {formatCurrency(
-                        getOutstanding(
-                          selectedInvoice
-                        )
-                      )}
-                    </span>
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-slate-700">
-                    Payment amount
-                  </label>
-
-                  <input
-                    name="amount"
-                    type="number"
-                    min="1"
-                    max={getOutstanding(
-                      selectedInvoice
-                    )}
-                    required
-                    value={
-                      paymentForm.amount
-                    }
-                    onChange={
-                      handlePaymentChange
-                    }
-                    className="mt-2 w-full rounded-lg border border-slate-300 px-4 py-3 text-lg font-semibold outline-none focus:border-slate-900"
-                  />
-                </div>
-
-                <div className="grid gap-5 sm:grid-cols-2">
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700">
-                      Payment date
-                    </label>
-
-                    <input
-                      name="paymentDate"
-                      type="date"
-                      required
-                      value={
-                        paymentForm.paymentDate
-                      }
-                      onChange={
-                        handlePaymentChange
-                      }
-                      className="mt-2 w-full rounded-lg border border-slate-300 px-4 py-3 outline-none focus:border-slate-900"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700">
-                      Payment method
-                    </label>
-
-                    <select
-                      name="paymentMethod"
-                      value={
-                        paymentForm.paymentMethod
-                      }
-                      onChange={
-                        handlePaymentChange
-                      }
-                      className="mt-2 w-full rounded-lg border border-slate-300 px-4 py-3 outline-none focus:border-slate-900"
-                    >
-                      <option value="Bank Transfer">
-                        Bank Transfer
-                      </option>
-
-                      <option value="Cash">
-                        Cash
-                      </option>
-
-                      <option value="Card">
-                        Card
-                      </option>
-
-                      <option value="POS">
-                        POS
-                      </option>
-
-                      <option value="Other">
-                        Other
-                      </option>
-                    </select>
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-slate-700">
-                    Payment reference
-                  </label>
-
-                  <input
-                    name="reference"
-                    value={
-                      paymentForm.reference
-                    }
-                    onChange={
-                      handlePaymentChange
-                    }
-                    placeholder="Bank transfer reference"
-                    className="mt-2 w-full rounded-lg border border-slate-300 px-4 py-3 outline-none focus:border-slate-900"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-slate-700">
-                    Notes
-                  </label>
-
-                  <textarea
-                    name="notes"
-                    value={
-                      paymentForm.notes
-                    }
-                    onChange={
-                      handlePaymentChange
-                    }
-                    rows={3}
-                    placeholder="Optional payment notes"
-                    className="mt-2 w-full rounded-lg border border-slate-300 px-4 py-3 outline-none focus:border-slate-900"
-                  />
-                </div>
-
-                <div className="flex justify-end gap-3 border-t pt-5">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setShowPaymentModal(
-                        false
-                      );
-                      setSelectedInvoice(
-                        null
-                      );
-                      resetPaymentForm();
-                    }}
-                    className="rounded-lg border border-slate-300 px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
-                  >
-                    Cancel
-                  </button>
-
-                  <button
-                    type="submit"
-                    className="inline-flex items-center gap-2 rounded-lg bg-green-700 px-5 py-2.5 text-sm font-medium text-white hover:bg-green-800"
-                  >
-                    <CheckCircle2
-                      size={17}
-                    />
-                    Record Payment
-                  </button>
-                </div>
-              </form>
+                <X size={20} />
+              </button>
             </div>
+
+            <form onSubmit={handleRecordPayment} className="space-y-5 p-6">
+              <div className="rounded-xl bg-slate-50 p-4">
+                <div className="flex justify-between text-sm">
+                  <span className="text-slate-500">Invoice amount</span>
+
+                  <span className="font-medium text-slate-900">
+                    {formatCurrency(selectedInvoice.amount)}
+                  </span>
+                </div>
+
+                <div className="mt-2 flex justify-between text-sm">
+                  <span className="text-slate-500">Already paid</span>
+
+                  <span className="font-medium text-green-700">
+                    {formatCurrency(selectedInvoice.amountPaid)}
+                  </span>
+                </div>
+
+                <div className="mt-3 flex justify-between border-t pt-3">
+                  <span className="font-medium text-slate-700">
+                    Outstanding
+                  </span>
+
+                  <span className="font-bold text-red-700">
+                    {formatCurrency(getOutstanding(selectedInvoice))}
+                  </span>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700">
+                  Payment amount
+                </label>
+
+                <input
+                  name="amount"
+                  type="number"
+                  min="1"
+                  max={getOutstanding(selectedInvoice)}
+                  required
+                  value={paymentForm.amount}
+                  onChange={handlePaymentChange}
+                  className="mt-2 w-full rounded-lg border border-slate-300 px-4 py-3 text-lg font-semibold outline-none focus:border-slate-900"
+                />
+              </div>
+
+              <div className="grid gap-5 sm:grid-cols-2">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700">
+                    Payment date
+                  </label>
+
+                  <input
+                    name="paymentDate"
+                    type="date"
+                    required
+                    value={paymentForm.paymentDate}
+                    onChange={handlePaymentChange}
+                    className="mt-2 w-full rounded-lg border border-slate-300 px-4 py-3 outline-none focus:border-slate-900"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-slate-700">
+                    Payment method
+                  </label>
+
+                  <select
+                    name="paymentMethod"
+                    value={paymentForm.paymentMethod}
+                    onChange={handlePaymentChange}
+                    className="mt-2 w-full rounded-lg border border-slate-300 px-4 py-3 outline-none focus:border-slate-900"
+                  >
+                    <option value="Bank Transfer">Bank Transfer</option>
+
+                    <option value="Cash">Cash</option>
+
+                    <option value="Card">Card</option>
+
+                    <option value="POS">POS</option>
+
+                    <option value="Other">Other</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700">
+                  Payment reference
+                </label>
+
+                <input
+                  name="reference"
+                  value={paymentForm.reference}
+                  onChange={handlePaymentChange}
+                  placeholder="Bank transfer reference"
+                  className="mt-2 w-full rounded-lg border border-slate-300 px-4 py-3 outline-none focus:border-slate-900"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700">
+                  Notes
+                </label>
+
+                <textarea
+                  name="notes"
+                  value={paymentForm.notes}
+                  onChange={handlePaymentChange}
+                  rows={3}
+                  placeholder="Optional payment notes"
+                  className="mt-2 w-full rounded-lg border border-slate-300 px-4 py-3 outline-none focus:border-slate-900"
+                />
+              </div>
+
+              <div className="flex justify-end gap-3 border-t pt-5">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowPaymentModal(false);
+                    setSelectedInvoice(null);
+                    resetPaymentForm();
+                  }}
+                  className="rounded-lg border border-slate-300 px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                >
+                  Cancel
+                </button>
+
+                <button
+                  type="submit"
+                  className="inline-flex items-center gap-2 rounded-lg bg-green-700 px-5 py-2.5 text-sm font-medium text-white hover:bg-green-800"
+                >
+                  <CheckCircle2 size={17} />
+                  Record Payment
+                </button>
+              </div>
+            </form>
           </div>
-        )}
+        </div>
+      )}
     </main>
   );
 }

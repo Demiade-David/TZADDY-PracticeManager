@@ -3,6 +3,7 @@ import mongoose from "mongoose";
 import { connectDB } from "@/lib/mongodb";
 import Invoice from "@/models/Invoice";
 import { requireAuth } from "@/lib/auth";
+import "@/models/User";
 
 const allowedStatuses = [
   "Draft",
@@ -80,9 +81,9 @@ export async function POST(request) {
 
     const amount = Number(body.amount);
 
-    if (!Number.isFinite(amount) || amount < 0) {
+   if (!Number.isFinite(amount) || amount <= 0) {
       return NextResponse.json(
-        { error: "A valid invoice amount is required" },
+       { error: "Invoice amount must be greater than zero" },
         { status: 400 }
       );
     }
