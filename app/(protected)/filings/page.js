@@ -28,6 +28,7 @@ const taxTypes = [
   "Withholding Tax",
   "Annual Returns",
   "Tax Clearance",
+  "SCUML",
   "Other",
 ];
 
