@@ -2,14 +2,7 @@
 
 import { useEffect, useState } from "react";
 
-import {
-  Plus,
-  Search,
-  X,
-  FileCheck2,
-  Check,
-  RotateCcw,
-} from "lucide-react";
+import { Plus, Search, X, FileCheck2, Check, RotateCcw } from "lucide-react";
 
 const initialForm = {
   client: "",
@@ -57,24 +50,17 @@ export default function FilingsPage() {
   useEffect(() => {
     let cancelled = false;
 
-    Promise.all([
-      fetch("/api/filings"),
-      fetch("/api/clients"),
-    ])
+    Promise.all([fetch("/api/filings"), fetch("/api/clients")])
       .then(async ([filingResponse, clientResponse]) => {
         const filingData = await filingResponse.json();
         const clientData = await clientResponse.json();
 
         if (!filingResponse.ok) {
-          throw new Error(
-            filingData.error || "Unable to load filings"
-          );
+          throw new Error(filingData.error || "Unable to load filings");
         }
 
         if (!clientResponse.ok) {
-          throw new Error(
-            clientData.error || "Unable to load clients"
-          );
+          throw new Error(clientData.error || "Unable to load clients");
         }
 
         return { filingData, clientData };
@@ -117,32 +103,24 @@ export default function FilingsPage() {
     setError("");
 
     try {
-      const response = await fetch(
-        "/api/filings",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(form),
-        }
-      );
+      const response = await fetch("/api/filings", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(form),
+      });
 
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(
-          data.error ||
-            "Unable to create filing"
-        );
+        throw new Error(data.error || "Unable to create filing");
       }
 
       setFilings((current) =>
         [...current, data].sort(
-          (a, b) =>
-            new Date(a.dueDate) -
-            new Date(b.dueDate)
-        )
+          (a, b) => new Date(a.dueDate) - new Date(b.dueDate),
+        ),
       );
 
       setForm(initialForm);
@@ -160,35 +138,25 @@ export default function FilingsPage() {
       setUpdatingId(id);
       setError("");
 
-      const response = await fetch(
-        "/api/filings",
-        {
-          method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            id,
-            status,
-          }),
-        }
-      );
+      const response = await fetch("/api/filings", {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          id,
+          status,
+        }),
+      });
 
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(
-          data.error ||
-            "Unable to update filing"
-        );
+        throw new Error(data.error || "Unable to update filing");
       }
 
       setFilings((current) =>
-        current.map((filing) =>
-          filing._id === id
-            ? data
-            : filing
-        )
+        current.map((filing) => (filing._id === id ? data : filing)),
       );
     } catch (error) {
       console.error(error);
@@ -199,52 +167,33 @@ export default function FilingsPage() {
   }
 
   function isOverdue(filing) {
-    if (
-      filing.status === "Filed" ||
-      filing.status === "Cancelled"
-    ) {
+    if (filing.status === "Filed" || filing.status === "Cancelled") {
       return false;
     }
 
-    return (
-      new Date(filing.dueDate) <
-      new Date()
-    );
+    return new Date(filing.dueDate) < new Date();
   }
 
-  const filteredFilings = filings.filter(
-    (filing) => {
-      const term = search.toLowerCase();
+  const filteredFilings = filings.filter((filing) => {
+    const term = search.toLowerCase();
 
-      const matchesSearch =
-        filing.client?.name
-          ?.toLowerCase()
-          .includes(term) ||
-        filing.taxType
-          ?.toLowerCase()
-          .includes(term) ||
-        filing.filingPeriod
-          ?.toLowerCase()
-          .includes(term) ||
-        filing.status
-          ?.toLowerCase()
-          .includes(term);
+    const matchesSearch =
+      filing.client?.name?.toLowerCase().includes(term) ||
+      filing.taxType?.toLowerCase().includes(term) ||
+      filing.filingPeriod?.toLowerCase().includes(term) ||
+      filing.status?.toLowerCase().includes(term);
 
-      const matchesFilter =
-        filter === "All"
-          ? true
-          : filter === "Active"
-          ? ![
-              "Filed",
-              "Cancelled",
-            ].includes(filing.status)
+    const matchesFilter =
+      filter === "All"
+        ? true
+        : filter === "Active"
+          ? !["Filed", "Cancelled"].includes(filing.status)
           : filter === "Filed"
-          ? filing.status === "Filed"
-          : true;
+            ? filing.status === "Filed"
+            : true;
 
-      return matchesSearch && matchesFilter;
-    }
-  );
+    return matchesSearch && matchesFilter;
+  });
 
   function getStatusClass(status) {
     if (status === "Filed") {
@@ -282,9 +231,7 @@ export default function FilingsPage() {
             </div>
 
             <button
-              onClick={() =>
-                setShowForm(true)
-              }
+              onClick={() => setShowForm(true)}
               className="inline-flex items-center justify-center gap-2 rounded-lg bg-slate-900 px-4 py-2.5 text-sm font-medium text-white hover:bg-slate-800"
             >
               <Plus size={18} />
@@ -293,23 +240,19 @@ export default function FilingsPage() {
           </div>
 
           <div className="flex flex-wrap gap-2">
-            {["Active", "Filed", "All"].map(
-              (option) => (
-                <button
-                  key={option}
-                  onClick={() =>
-                    setFilter(option)
-                  }
-                  className={`rounded-lg px-4 py-2 text-sm font-medium ${
-                    filter === option
-                      ? "bg-slate-900 text-white"
-                      : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-                  }`}
-                >
-                  {option}
-                </button>
-              )
-            )}
+            {["Active", "Filed", "All"].map((option) => (
+              <button
+                key={option}
+                onClick={() => setFilter(option)}
+                className={`rounded-lg px-4 py-2 text-sm font-medium ${
+                  filter === option
+                    ? "bg-slate-900 text-white"
+                    : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                }`}
+              >
+                {option}
+              </button>
+            ))}
           </div>
         </div>
       </div>
@@ -322,56 +265,34 @@ export default function FilingsPage() {
         )}
 
         <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <SummaryCard
-            label="Total"
-            value={filings.length}
-          />
+          <SummaryCard label="Total" value={filings.length} />
 
           <SummaryCard
             label="Active"
             value={
               filings.filter(
-                (filing) =>
-                  ![
-                    "Filed",
-                    "Cancelled",
-                  ].includes(filing.status)
+                (filing) => !["Filed", "Cancelled"].includes(filing.status),
               ).length
             }
           />
 
           <SummaryCard
             label="Overdue"
-            value={
-              filings.filter(
-                (filing) =>
-                  isOverdue(filing)
-              ).length
-            }
+            value={filings.filter((filing) => isOverdue(filing)).length}
           />
 
           <SummaryCard
             label="Filed"
-            value={
-              filings.filter(
-                (filing) =>
-                  filing.status === "Filed"
-              ).length
-            }
+            value={filings.filter((filing) => filing.status === "Filed").length}
           />
         </div>
 
         <div className="mb-6 flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3">
-          <Search
-            size={19}
-            className="text-slate-400"
-          />
+          <Search size={19} className="text-slate-400" />
 
           <input
             value={search}
-            onChange={(e) =>
-              setSearch(e.target.value)
-            }
+            onChange={(e) => setSearch(e.target.value)}
             placeholder="Search filings..."
             className="w-full bg-transparent text-sm outline-none"
           />
@@ -383,10 +304,7 @@ export default function FilingsPage() {
           </div>
         ) : filteredFilings.length === 0 ? (
           <div className="rounded-xl border bg-white p-12 text-center">
-            <FileCheck2
-              size={40}
-              className="mx-auto text-slate-300"
-            />
+            <FileCheck2 size={40} className="mx-auto text-slate-300" />
 
             <h2 className="mt-4 font-semibold text-slate-900">
               No filings found
@@ -431,99 +349,82 @@ export default function FilingsPage() {
                 </thead>
 
                 <tbody className="divide-y">
-                  {filteredFilings.map(
-                    (filing) => {
-                      const overdue =
-                        isOverdue(filing);
+                  {filteredFilings.map((filing) => {
+                    const overdue = isOverdue(filing);
 
-                      return (
-                        <tr
-                          key={filing._id}
-                          className="hover:bg-slate-50"
-                        >
-                          <td className="px-5 py-4">
-                            <p className="font-medium text-slate-900">
-                              {filing.client?.name ||
-                                "—"}
-                            </p>
-                          </td>
+                    return (
+                      <tr key={filing._id} className="hover:bg-slate-50">
+                        <td className="px-5 py-4">
+                          <p className="font-medium text-slate-900">
+                            {filing.client?.name || "—"}
+                          </p>
+                        </td>
 
-                          <td className="px-5 py-4 text-sm text-slate-600">
-                            {filing.taxType}
-                          </td>
+                        <td className="px-5 py-4 text-sm text-slate-600">
+                          {filing.taxType}
+                        </td>
 
-                          <td className="px-5 py-4 text-sm text-slate-600">
-                            {filing.filingPeriod}
-                          </td>
+                        <td className="px-5 py-4 text-sm text-slate-600">
+                          {filing.filingPeriod}
+                        </td>
 
-                          <td className="px-5 py-4">
-                            <span
-                              className={`text-sm ${
-                                overdue
-                                  ? "font-semibold text-red-600"
-                                  : "text-slate-600"
-                              }`}
+                        <td className="px-5 py-4">
+                          <span
+                            className={`text-sm ${
+                              overdue
+                                ? "font-semibold text-red-600"
+                                : "text-slate-600"
+                            }`}
+                          >
+                            {new Date(filing.dueDate).toLocaleDateString()}
+                          </span>
+                        </td>
+
+                        <td className="px-5 py-4">
+                          <select
+                            value={filing.status}
+                            disabled={updatingId === filing._id}
+                            onChange={(e) =>
+                              updateStatus(filing._id, e.target.value)
+                            }
+                            className={`rounded-lg border border-slate-200 px-3 py-2 text-xs font-medium outline-none focus:border-slate-400 focus:ring-2 focus:ring-slate-200 disabled:cursor-not-allowed disabled:opacity-50 ${getStatusClass(
+                              filing.status,
+                            )}`}
+                          >
+                            {statuses.map((status) => (
+                              <option key={status} value={status}>
+                                {status}
+                              </option>
+                            ))}
+                          </select>
+                        </td>
+
+                        <td className="px-5 py-4">
+                          {filing.status === "Filed" ? (
+                            <button
+                              disabled={updatingId === filing._id}
+                              onClick={() =>
+                                updateStatus(filing._id, "In Progress")
+                              }
+                              className="inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-xs font-medium text-slate-600 hover:bg-slate-100 disabled:opacity-50"
                             >
-                              {new Date(
-                                filing.dueDate
-                              ).toLocaleDateString()}
-                            </span>
-                          </td>
-
-                          <td className="px-5 py-4">
-                            <span
-                              className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${getStatusClass(
-                                filing.status
-                              )}`}
+                              <RotateCcw size={14} />
+                              Reopen
+                            </button>
+                          ) : (
+                            <button
+                              disabled={updatingId === filing._id}
+                              onClick={() => updateStatus(filing._id, "Filed")}
+                              className="inline-flex items-center gap-2 rounded-lg bg-green-600 px-3 py-2 text-xs font-medium text-white hover:bg-green-700 disabled:opacity-50"
                             >
-                              {filing.status}
-                            </span>
-                          </td>
-
-                          <td className="px-5 py-4">
-                            {filing.status ===
-                            "Filed" ? (
-                              <button
-                                disabled={
-                                  updatingId ===
-                                  filing._id
-                                }
-                                onClick={() =>
-                                  updateStatus(
-                                    filing._id,
-                                    "In Progress"
-                                  )
-                                }
-                                className="inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-xs font-medium text-slate-600 hover:bg-slate-100 disabled:opacity-50"
-                              >
-                                <RotateCcw
-                                  size={14}
-                                />
-                                Reopen
-                              </button>
-                            ) : (
-                              <button
-                                disabled={
-                                  updatingId ===
-                                  filing._id
-                                }
-                                onClick={() =>
-                                  updateStatus(
-                                    filing._id,
-                                    "Filed"
-                                  )
-                                }
-                                className="inline-flex items-center gap-2 rounded-lg bg-green-600 px-3 py-2 text-xs font-medium text-white hover:bg-green-700 disabled:opacity-50"
-                              >
-                                <Check size={14} />
-                                Mark Filed
-                              </button>
-                            )}
-                          </td>
-                        </tr>
-                      );
-                    }
-                  )}
+                              <Check size={14} />
+                              Mark Filed
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
@@ -546,19 +447,14 @@ export default function FilingsPage() {
               </div>
 
               <button
-                onClick={() =>
-                  setShowForm(false)
-                }
+                onClick={() => setShowForm(false)}
                 className="rounded-lg p-2 text-slate-400 hover:bg-slate-100"
               >
                 <X size={20} />
               </button>
             </div>
 
-            <form
-              onSubmit={handleSubmit}
-              className="space-y-5 p-6"
-            >
+            <form onSubmit={handleSubmit} className="space-y-5 p-6">
               <div>
                 <label className="text-sm font-medium text-slate-700">
                   Client *
@@ -567,23 +463,13 @@ export default function FilingsPage() {
                 <select
                   required
                   value={form.client}
-                  onChange={(e) =>
-                    updateField(
-                      "client",
-                      e.target.value
-                    )
-                  }
+                  onChange={(e) => updateField("client", e.target.value)}
                   className="mt-2 w-full rounded-lg border px-3 py-2.5"
                 >
-                  <option value="">
-                    Select client
-                  </option>
+                  <option value="">Select client</option>
 
                   {clients.map((client) => (
-                    <option
-                      key={client._id}
-                      value={client._id}
-                    >
+                    <option key={client._id} value={client._id}>
                       {client.name}
                     </option>
                   ))}
@@ -599,23 +485,13 @@ export default function FilingsPage() {
                   <select
                     required
                     value={form.taxType}
-                    onChange={(e) =>
-                      updateField(
-                        "taxType",
-                        e.target.value
-                      )
-                    }
+                    onChange={(e) => updateField("taxType", e.target.value)}
                     className="mt-2 w-full rounded-lg border px-3 py-2.5"
                   >
-                    <option value="">
-                      Select tax type
-                    </option>
+                    <option value="">Select tax type</option>
 
                     {taxTypes.map((type) => (
-                      <option
-                        key={type}
-                        value={type}
-                      >
+                      <option key={type} value={type}>
                         {type}
                       </option>
                     ))}
@@ -631,10 +507,7 @@ export default function FilingsPage() {
                     required
                     value={form.filingPeriod}
                     onChange={(e) =>
-                      updateField(
-                        "filingPeriod",
-                        e.target.value
-                      )
+                      updateField("filingPeriod", e.target.value)
                     }
                     placeholder="August 2026"
                     className="mt-2 w-full rounded-lg border px-3 py-2.5"
@@ -650,12 +523,7 @@ export default function FilingsPage() {
                     required
                     type="date"
                     value={form.dueDate}
-                    onChange={(e) =>
-                      updateField(
-                        "dueDate",
-                        e.target.value
-                      )
-                    }
+                    onChange={(e) => updateField("dueDate", e.target.value)}
                     className="mt-2 w-full rounded-lg border px-3 py-2.5"
                   />
                 </div>
@@ -667,19 +535,11 @@ export default function FilingsPage() {
 
                   <select
                     value={form.status}
-                    onChange={(e) =>
-                      updateField(
-                        "status",
-                        e.target.value
-                      )
-                    }
+                    onChange={(e) => updateField("status", e.target.value)}
                     className="mt-2 w-full rounded-lg border px-3 py-2.5"
                   >
                     {statuses.map((status) => (
-                      <option
-                        key={status}
-                        value={status}
-                      >
+                      <option key={status} value={status}>
                         {status}
                       </option>
                     ))}
@@ -694,12 +554,7 @@ export default function FilingsPage() {
                   <textarea
                     rows={3}
                     value={form.notes}
-                    onChange={(e) =>
-                      updateField(
-                        "notes",
-                        e.target.value
-                      )
-                    }
+                    onChange={(e) => updateField("notes", e.target.value)}
                     className="mt-2 w-full rounded-lg border px-3 py-2.5"
                   />
                 </div>
@@ -708,9 +563,7 @@ export default function FilingsPage() {
               <div className="flex justify-end gap-3 border-t pt-5">
                 <button
                   type="button"
-                  onClick={() =>
-                    setShowForm(false)
-                  }
+                  onClick={() => setShowForm(false)}
                   className="rounded-lg border px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
                 >
                   Cancel
@@ -718,14 +571,10 @@ export default function FilingsPage() {
 
                 <button
                   type="submit"
-                  disabled={
-                    saving || !clients.length
-                  }
+                  disabled={saving || !clients.length}
                   className="rounded-lg bg-slate-900 px-5 py-2.5 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-50"
                 >
-                  {saving
-                    ? "Saving..."
-                    : "Create Filing"}
+                  {saving ? "Saving..." : "Create Filing"}
                 </button>
               </div>
             </form>
@@ -739,13 +588,9 @@ export default function FilingsPage() {
 function SummaryCard({ label, value }) {
   return (
     <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-      <p className="text-sm text-slate-500">
-        {label}
-      </p>
+      <p className="text-sm text-slate-500">{label}</p>
 
-      <p className="mt-3 text-3xl font-bold text-slate-900">
-        {value}
-      </p>
+      <p className="mt-3 text-3xl font-bold text-slate-900">{value}</p>
     </div>
   );
 }
