@@ -304,7 +304,7 @@ export default async function DashboardPage() {
           <div className="mt-1 flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
             <div>
               <h1 className="text-2xl font-bold tracking-tight text-slate-900">
-                Good evening, {firstName}.
+                Good Day, {firstName}.
               </h1>
 
               <p className="mt-1 text-sm text-slate-500">
