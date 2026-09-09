@@ -8,7 +8,7 @@ import {
   Lock,
 } from "lucide-react";
 
-import AppShell from "@/components/AppShell";
+
 
 const permissions = [
   ["dashboard", "Dashboard"],
@@ -104,18 +104,18 @@ export default function PermissionsPage() {
 
   if (loading) {
     return (
-      <AppShell user={user}>
+      <main user={user}>
         <div className="flex min-h-screen items-center justify-center">
           <p className="text-sm text-slate-500">
             Loading permissions...
           </p>
         </div>
-      </AppShell>
+      </main>
     );
   }
 
   return (
-    <AppShell user={user}>
+    <main user={user}>
       <div className="border-b border-slate-200 bg-white">
         <div className="px-6 py-7 lg:px-8">
           <p className="text-sm font-medium text-slate-500">
@@ -229,7 +229,7 @@ export default function PermissionsPage() {
           </p>
         </div>
       </div>
-    </AppShell>
+    </main>
   );
 }
 

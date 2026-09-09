@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import AppShell from "@/components/AppShell";
+
 import {
   Plus,
   Search,
@@ -216,7 +216,7 @@ export default function EngagementsPage() {
     });
 
   return (
-    <AppShell>
+    <main>
       <div className="border-b bg-white">
         <div className="flex flex-col gap-4 px-6 py-6 lg:px-8">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -692,7 +692,7 @@ export default function EngagementsPage() {
           </div>
         </div>
       )}
-    </AppShell>
+    </main>
   );
 }
 

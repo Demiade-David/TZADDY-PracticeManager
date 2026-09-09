@@ -22,7 +22,7 @@ import Invoice from "@/models/Invoice";
 import Payment from "@/models/Payment";
 import Document from "@/models/Document";
 
-import AppShell from "@/components/AppShell";
+
 
 async function getDashboardData() {
   await connectDB();
@@ -294,7 +294,7 @@ export default async function DashboardPage() {
   );
 
   return (
-    <AppShell user={user}>
+    <main user={user}>
       <div className="border-b border-slate-200 bg-white">
         <div className="px-6 py-7 lg:px-8">
           <p className="text-sm font-medium text-slate-500">
@@ -582,7 +582,7 @@ export default async function DashboardPage() {
           </div>
         </section>
       </div>
-    </AppShell>
+    </main>
   );
 }
 

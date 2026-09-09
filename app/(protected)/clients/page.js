@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import AppShell from "@/components/AppShell";
+
 import { Plus, Search, X, Building2, Mail, Phone } from "lucide-react";
 
 const initialForm = {
@@ -123,7 +123,7 @@ export default function ClientsPage() {
   });
 
   return (
-    <AppShell>
+    <main>
       <div className="border-b bg-white">
         <div className="flex flex-col gap-4 px-6 py-6 sm:flex-row sm:items-center sm:justify-between lg:px-8">
           <div>
@@ -453,6 +453,6 @@ export default function ClientsPage() {
           </div>
         </div>
       )}
-    </AppShell>
+    </main>
   );
 }

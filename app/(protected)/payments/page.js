@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import AppShell from "@/components/AppShell";
+
 import {
   CreditCard,
   Plus,
@@ -442,7 +442,7 @@ export default function PaymentsPage() {
   }
 
   return (
-    <AppShell>
+    <main>
       <div className="border-b bg-white">
         <div className="flex flex-col gap-4 px-6 py-6 sm:flex-row sm:items-center sm:justify-between lg:px-8">
           <div>
@@ -1227,6 +1227,6 @@ export default function PaymentsPage() {
             </div>
           </div>
         )}
-    </AppShell>
+    </main>
   );
 }

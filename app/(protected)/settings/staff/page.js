@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { UserPlus, ShieldCheck, UserCheck, UserX, X } from "lucide-react";
 
-import AppShell from "@/components/AppShell";
+
 
 export default function StaffPage() {
   const [user, setUser] = useState(null);
@@ -118,16 +118,16 @@ export default function StaffPage() {
 
   if (loading) {
     return (
-      <AppShell user={user}>
+      <main user={user}>
         <div className="flex min-h-screen items-center justify-center">
           <p className="text-sm text-slate-500">Loading staff...</p>
         </div>
-      </AppShell>
+      </main>
     );
   }
 
   return (
-    <AppShell user={user}>
+    <main user={user}>
       <div className="border-b border-slate-200 bg-white">
         <div className="px-6 py-7 lg:px-8">
           <p className="text-sm font-medium text-slate-500">Settings</p>
@@ -280,7 +280,7 @@ export default function StaffPage() {
           onSubmit={handleCreateStaff}
         />
       )}
-    </AppShell>
+    </main>
   );
 }
 

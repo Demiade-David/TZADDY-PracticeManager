@@ -9,7 +9,7 @@ import {
 
 import { getCurrentUser } from "@/lib/auth";
 import { redirect } from "next/navigation";
-import AppShell from "@/components/AppShell";
+
 
 export default async function SettingsPage() {
   const user = await getCurrentUser();
@@ -29,7 +29,7 @@ if (
   }
 
   return (
-    <AppShell user={user}>
+    <main user={user}>
       <div className="border-b border-slate-200 bg-white">
         <div className="px-6 py-7 lg:px-8">
           <p className="text-sm font-medium text-slate-500">
@@ -106,7 +106,7 @@ if (
           </div>
         </div>
       </div>
-    </AppShell>
+    </main>
   );
 }
 

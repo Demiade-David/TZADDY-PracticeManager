@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import AppShell from "@/components/AppShell";
+
 import {
   ArrowLeft,
   Building2,
@@ -112,28 +112,28 @@ export default function ClientDetailsPage() {
 
   if (loading) {
     return (
-      <AppShell>
+      <main>
         <div className="p-8 text-sm text-slate-500">
           Loading client...
         </div>
-      </AppShell>
+      </main>
     );
   }
 
   if (error || !client) {
     return (
-      <AppShell>
+      <main>
         <div className="p-8">
           <div className="rounded-xl bg-red-50 p-5 text-sm text-red-700">
             {error || "Client not found"}
           </div>
         </div>
-      </AppShell>
+      </main>
     );
   }
 
   return (
-    <AppShell>
+    <main>
       <div className="border-b bg-white">
         <div className="flex items-center justify-between px-6 py-6 lg:px-8">
           <div className="flex items-center gap-4">
@@ -478,7 +478,7 @@ export default function ClientDetailsPage() {
           </div>
         )}
       </div>
-    </AppShell>
+    </main>
   );
 }
 

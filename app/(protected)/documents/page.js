@@ -1,13 +1,14 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import AppShell from "@/components/AppShell";
+
 import {
   FileText,
   Plus,
   Search,
   X,
 } from "lucide-react";
+
 
 export default function DocumentsPage() {
   const [documents, setDocuments] = useState([]);
@@ -166,7 +167,7 @@ export default function DocumentsPage() {
   }
 
   return (
-    <AppShell>
+    <main>
       <div className="border-b bg-white">
         <div className="flex flex-col gap-4 px-6 py-6 sm:flex-row sm:items-center sm:justify-between lg:px-8">
           <div>
@@ -592,6 +593,6 @@ export default function DocumentsPage() {
           </div>
         </div>
       )}
-    </AppShell>
+    </main>
   );
 }
