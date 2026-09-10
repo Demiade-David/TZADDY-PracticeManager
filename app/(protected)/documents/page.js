@@ -7,8 +7,8 @@ import {
   Plus,
   Search,
   X,
+  Paperclip,
 } from "lucide-react";
-
 
 export default function DocumentsPage() {
   const [documents, setDocuments] = useState([]);
@@ -19,6 +19,9 @@ export default function DocumentsPage() {
   const [search, setSearch] = useState("");
   const [showModal, setShowModal] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [uploading, setUploading] = useState(false);
+
+  const [selectedFile, setSelectedFile] = useState(null);
 
   const [form, setForm] = useState({
     client: "",
@@ -26,79 +29,104 @@ export default function DocumentsPage() {
     documentType: "",
     engagement: "",
     filing: "",
-    fileUrl: "",
-    fileName: "",
     notes: "",
   });
 
-  useEffect(() => {
-    let cancelled = false;
+  async function loadData() {
+    try {
+      setLoading(true);
 
-    Promise.all([
-      fetch("/api/documents"),
-      fetch("/api/clients"),
-      fetch("/api/engagements"),
-      fetch("/api/filings"),
-    ])
-      .then(async (responses) => {
-        const [
-          documentsResponse,
-          clientsResponse,
-          engagementsResponse,
-          filingsResponse,
-        ] = responses;
+      const [
+        documentsResponse,
+        clientsResponse,
+        engagementsResponse,
+        filingsResponse,
+      ] = await Promise.all([
+        fetch("/api/documents"),
+        fetch("/api/clients"),
+        fetch("/api/engagements"),
+        fetch("/api/filings"),
+      ]);
 
-        return Promise.all(
-          [
-            documentsResponse,
-            clientsResponse,
-            engagementsResponse,
-            filingsResponse,
-          ].map((response) => response.json())
+      const documentsData =
+        await documentsResponse.json();
+
+      const clientsData =
+        await clientsResponse.json();
+
+      const engagementsData =
+        await engagementsResponse.json();
+
+      const filingsData =
+        await filingsResponse.json();
+
+      if (!documentsResponse.ok) {
+        throw new Error(
+          documentsData.error ||
+            "Unable to load documents"
         );
-      })
-      .then(
-        ([
-          documentsData,
-          clientsData,
-          engagementsData,
-          filingsData,
-        ]) => {
-          if (cancelled) {
-            return;
-          }
+      }
 
-          setDocuments(
-            Array.isArray(documentsData) ? documentsData : []
-          );
+      if (!clientsResponse.ok) {
+        throw new Error(
+          clientsData.error ||
+            "Unable to load clients"
+        );
+      }
 
-          setClients(
-            Array.isArray(clientsData) ? clientsData : []
-          );
+      if (!engagementsResponse.ok) {
+        throw new Error(
+          engagementsData.error ||
+            "Unable to load engagements"
+        );
+      }
 
-          setEngagements(
-            Array.isArray(engagementsData)
-              ? engagementsData
-              : []
-          );
+      if (!filingsResponse.ok) {
+        throw new Error(
+          filingsData.error ||
+            "Unable to load filings"
+        );
+      }
 
-          setFilings(
-            Array.isArray(filingsData) ? filingsData : []
-          );
-        }
-      )
-      .catch((error) => {
-        console.error("Unable to load documents data:", error);
-      })
-      .finally(() => {
-        if (!cancelled) {
-          setLoading(false);
-        }
-      });
+      setDocuments(
+        Array.isArray(documentsData)
+          ? documentsData
+          : []
+      );
 
-    return () => {
-      cancelled = true;
+      setClients(
+        Array.isArray(clientsData)
+          ? clientsData
+          : []
+      );
+
+      setEngagements(
+        Array.isArray(engagementsData)
+          ? engagementsData
+          : []
+      );
+
+      setFilings(
+        Array.isArray(filingsData)
+          ? filingsData
+          : []
+      );
+    } catch (error) {
+      console.error(
+        "Unable to load documents data:",
+        error
+      );
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    const loadInitialData = async () => {
+      await loadData();
     };
+
+    loadInitialData();
   }, []);
 
   const filteredDocuments = useMemo(() => {
@@ -110,10 +138,18 @@ export default function DocumentsPage() {
 
     return documents.filter((document) => {
       return (
-        document.name?.toLowerCase().includes(query) ||
-        document.documentType?.toLowerCase().includes(query) ||
-        document.client?.name?.toLowerCase().includes(query) ||
-        document.fileName?.toLowerCase().includes(query)
+        document.name
+          ?.toLowerCase()
+          .includes(query) ||
+        document.documentType
+          ?.toLowerCase()
+          .includes(query) ||
+        document.client?.name
+          ?.toLowerCase()
+          .includes(query) ||
+        document.fileName
+          ?.toLowerCase()
+          .includes(query)
       );
     });
   }, [documents, search]);
@@ -127,43 +163,87 @@ export default function DocumentsPage() {
     }));
   }
 
+  function handleFileChange(e) {
+    const file = e.target.files?.[0] || null;
+
+    setSelectedFile(file);
+  }
+
+  function resetForm() {
+    setForm({
+      client: "",
+      name: "",
+      documentType: "",
+      engagement: "",
+      filing: "",
+      notes: "",
+    });
+
+    setSelectedFile(null);
+  }
+
   async function handleSubmit(e) {
     e.preventDefault();
 
-    try {
-      const response = await fetch("/api/documents", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(form),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        alert(data.error || "Unable to create document");
-        return;
-      }
-
-      setDocuments((current) => [data, ...current]);
-
-      setForm({
-        client: "",
-        name: "",
-        documentType: "",
-        engagement: "",
-        filing: "",
-        fileUrl: "",
-        fileName: "",
-        notes: "",
-      });
-
-      setShowModal(false);
-    } catch (error) {
-      console.error("Create document error:", error);
-      alert("Something went wrong.");
+    if (!selectedFile) {
+      alert("Please select a file to attach.");
+      return;
     }
+
+    if (!form.client) {
+      alert("Please select a client.");
+      return;
+    }
+
+    if (!form.name.trim()) {
+      alert("Please enter a document name.");
+      return;
+    }
+
+    if (!form.documentType) {
+      alert("Please select a document type.");
+      return;
+    }
+
+    try {
+      setUploading(true);
+
+      /*
+       * Actual secure file upload will be connected
+       * to Vercel Blob in the next step.
+       */
+
+      alert(
+        "File selected successfully. Secure file storage will be connected next."
+      );
+    } catch (error) {
+      console.error(
+        "Document attachment error:",
+        error
+      );
+
+      alert(
+        "Something went wrong while preparing the document."
+      );
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  function formatFileSize(bytes) {
+    if (!bytes) {
+      return "";
+    }
+
+    if (bytes < 1024) {
+      return `${bytes} B`;
+    }
+
+    if (bytes < 1024 * 1024) {
+      return `${(bytes / 1024).toFixed(1)} KB`;
+    }
+
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   }
 
   return (
@@ -176,12 +256,16 @@ export default function DocumentsPage() {
             </h1>
 
             <p className="mt-1 text-sm text-slate-500">
-              Manage client documents and supporting records.
+              Manage client documents and supporting
+              records.
             </p>
           </div>
 
           <button
-            onClick={() => setShowModal(true)}
+            onClick={() => {
+              resetForm();
+              setShowModal(true);
+            }}
             className="inline-flex items-center justify-center gap-2 rounded-lg bg-slate-900 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-slate-800"
           >
             <Plus size={18} />
@@ -208,7 +292,11 @@ export default function DocumentsPage() {
             </p>
 
             <p className="mt-2 text-3xl font-bold text-slate-900">
-              {documents.filter((document) => document.filing).length}
+              {
+                documents.filter(
+                  (document) => document.filing
+                ).length
+              }
             </p>
           </div>
 
@@ -220,7 +308,8 @@ export default function DocumentsPage() {
             <p className="mt-2 text-3xl font-bold text-slate-900">
               {
                 documents.filter(
-                  (document) => document.engagement
+                  (document) =>
+                    document.engagement
                 ).length
               }
             </p>
@@ -228,13 +317,18 @@ export default function DocumentsPage() {
         </div>
 
         <div className="mb-5 flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3">
-          <Search size={19} className="text-slate-400" />
+          <Search
+            size={19}
+            className="text-slate-400"
+          />
 
           <input
             type="text"
             placeholder="Search documents, clients or document types..."
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) =>
+              setSearch(e.target.value)
+            }
             className="w-full bg-transparent text-sm outline-none"
           />
         </div>
@@ -256,8 +350,8 @@ export default function DocumentsPage() {
               </h3>
 
               <p className="mt-1 text-sm text-slate-500">
-                Add a document to start building your document
-                register.
+                Add a document to start building
+                your document register.
               </p>
             </div>
           ) : (
@@ -288,67 +382,79 @@ export default function DocumentsPage() {
                 </thead>
 
                 <tbody className="divide-y divide-slate-100">
-                  {filteredDocuments.map((document) => (
-                    <tr
-                      key={document._id}
-                      className="hover:bg-slate-50"
-                    >
-                      <td className="px-5 py-4">
-                        <div className="flex items-center gap-3">
-                          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-slate-100">
-                            <FileText
-                              size={18}
-                              className="text-slate-600"
-                            />
-                          </div>
+                  {filteredDocuments.map(
+                    (document) => (
+                      <tr
+                        key={document._id}
+                        className="hover:bg-slate-50"
+                      >
+                        <td className="px-5 py-4">
+                          <div className="flex items-center gap-3">
+                            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-slate-100">
+                              <FileText
+                                size={18}
+                                className="text-slate-600"
+                              />
+                            </div>
 
-                          <div>
-                            <p className="font-medium text-slate-900">
-                              {document.name}
-                            </p>
-
-                            {document.fileName && (
-                              <p className="text-xs text-slate-500">
-                                {document.fileName}
+                            <div>
+                              <p className="font-medium text-slate-900">
+                                {document.name}
                               </p>
-                            )}
+
+                              {document.fileName && (
+                                <p className="text-xs text-slate-500">
+                                  {
+                                    document.fileName
+                                  }
+                                </p>
+                              )}
+                            </div>
                           </div>
-                        </div>
-                      </td>
+                        </td>
 
-                      <td className="px-5 py-4 text-sm text-slate-700">
-                        {document.client?.name || "—"}
-                      </td>
+                        <td className="px-5 py-4 text-sm text-slate-700">
+                          {document.client?.name ||
+                            "—"}
+                        </td>
 
-                      <td className="px-5 py-4 text-sm text-slate-700">
-                        {document.documentType}
-                      </td>
+                        <td className="px-5 py-4 text-sm text-slate-700">
+                          {document.documentType}
+                        </td>
 
-                      <td className="px-5 py-4">
-                        {document.filing ? (
-                          <span className="inline-flex rounded-full bg-blue-50 px-2.5 py-1 text-xs font-medium text-blue-700">
-                            {document.filing.taxType}
-                          </span>
-                        ) : document.engagement ? (
-                          <span className="inline-flex rounded-full bg-purple-50 px-2.5 py-1 text-xs font-medium text-purple-700">
-                            {document.engagement.name}
-                          </span>
-                        ) : (
-                          <span className="text-sm text-slate-400">
-                            —
-                          </span>
-                        )}
-                      </td>
+                        <td className="px-5 py-4">
+                          {document.filing ? (
+                            <span className="inline-flex rounded-full bg-blue-50 px-2.5 py-1 text-xs font-medium text-blue-700">
+                              {
+                                document.filing
+                                  .taxType
+                              }
+                            </span>
+                          ) : document.engagement ? (
+                            <span className="inline-flex rounded-full bg-purple-50 px-2.5 py-1 text-xs font-medium text-purple-700">
+                              {
+                                document
+                                  .engagement
+                                  .name
+                              }
+                            </span>
+                          ) : (
+                            <span className="text-sm text-slate-400">
+                              —
+                            </span>
+                          )}
+                        </td>
 
-                      <td className="px-5 py-4 text-sm text-slate-500">
-                        {document.uploadedAt
-                          ? new Date(
-                              document.uploadedAt
-                            ).toLocaleDateString()
-                          : "—"}
-                      </td>
-                    </tr>
-                  ))}
+                        <td className="px-5 py-4 text-sm text-slate-500">
+                          {document.uploadedAt
+                            ? new Date(
+                                document.uploadedAt
+                              ).toLocaleDateString()
+                            : "—"}
+                        </td>
+                      </tr>
+                    )
+                  )}
                 </tbody>
               </table>
             </div>
@@ -366,12 +472,16 @@ export default function DocumentsPage() {
                 </h2>
 
                 <p className="mt-1 text-sm text-slate-500">
-                  Record a client document in the practice system.
+                  Attach a document to a client
+                  record.
                 </p>
               </div>
 
               <button
-                onClick={() => setShowModal(false)}
+                onClick={() => {
+                  setShowModal(false);
+                  resetForm();
+                }}
                 className="rounded-lg p-2 text-slate-500 hover:bg-slate-100"
               >
                 <X size={20} />
@@ -440,30 +550,39 @@ export default function DocumentsPage() {
                     <option value="">
                       Select type
                     </option>
+
                     <option value="Financial Statements">
                       Financial Statements
                     </option>
+
                     <option value="Tax Document">
                       Tax Document
                     </option>
+
                     <option value="Certificate">
                       Certificate
                     </option>
+
                     <option value="Receipt">
                       Receipt
                     </option>
+
                     <option value="Filing Evidence">
                       Filing Evidence
                     </option>
+
                     <option value="Client Submission">
                       Client Submission
                     </option>
+
                     <option value="Correspondence">
                       Correspondence
                     </option>
+
                     <option value="Working Paper">
                       Working Paper
                     </option>
+
                     <option value="Other">
                       Other
                     </option>
@@ -487,15 +606,17 @@ export default function DocumentsPage() {
                       None
                     </option>
 
-                    {engagements.map((engagement) => (
-                      <option
-                        key={engagement._id}
-                        value={engagement._id}
-                      >
-                        {engagement.name} —{" "}
-                        {engagement.client?.name}
-                      </option>
-                    ))}
+                    {engagements.map(
+                      (engagement) => (
+                        <option
+                          key={engagement._id}
+                          value={engagement._id}
+                        >
+                          {engagement.name} —{" "}
+                          {engagement.client?.name}
+                        </option>
+                      )
+                    )}
                   </select>
                 </div>
 
@@ -528,33 +649,46 @@ export default function DocumentsPage() {
                 </div>
               </div>
 
-              <div className="grid gap-5 sm:grid-cols-2">
-                <div>
-                  <label className="block text-sm font-medium text-slate-700">
-                    File name
-                  </label>
+              <div>
+                <label className="block text-sm font-medium text-slate-700">
+                  Attach file
+                </label>
+
+                <div className="mt-2 rounded-xl border-2 border-dashed border-slate-300 bg-slate-50 p-6 text-center">
+                  <Paperclip
+                    size={28}
+                    className="mx-auto text-slate-400"
+                  />
+
+                  <p className="mt-2 text-sm font-medium text-slate-700">
+                    Choose a file from your computer
+                  </p>
+
+                  <p className="mt-1 text-xs text-slate-500">
+                    Select the client document you
+                    want to attach.
+                  </p>
 
                   <input
-                    name="fileName"
-                    value={form.fileName}
-                    onChange={handleChange}
-                    placeholder="e.g. CIT_2025_Return.pdf"
-                    className="mt-2 w-full rounded-lg border border-slate-300 px-4 py-3 outline-none focus:border-slate-900"
+                    type="file"
+                    required
+                    onChange={handleFileChange}
+                    className="mt-4 block w-full text-sm text-slate-600 file:mr-4 file:rounded-lg file:border-0 file:bg-slate-900 file:px-4 file:py-2 file:text-sm file:font-medium file:text-white hover:file:bg-slate-800"
                   />
-                </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-slate-700">
-                    File URL / reference
-                  </label>
+                  {selectedFile && (
+                    <div className="mt-4 rounded-lg bg-white p-3 text-left">
+                      <p className="text-sm font-medium text-slate-800">
+                        {selectedFile.name}
+                      </p>
 
-                  <input
-                    name="fileUrl"
-                    value={form.fileUrl}
-                    onChange={handleChange}
-                    placeholder="Secure file location"
-                    className="mt-2 w-full rounded-lg border border-slate-300 px-4 py-3 outline-none focus:border-slate-900"
-                  />
+                      <p className="mt-1 text-xs text-slate-500">
+                        {formatFileSize(
+                          selectedFile.size
+                        )}
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -576,7 +710,10 @@ export default function DocumentsPage() {
               <div className="flex justify-end gap-3 border-t pt-5">
                 <button
                   type="button"
-                  onClick={() => setShowModal(false)}
+                  onClick={() => {
+                    setShowModal(false);
+                    resetForm();
+                  }}
                   className="rounded-lg border border-slate-300 px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
                 >
                   Cancel
@@ -584,9 +721,12 @@ export default function DocumentsPage() {
 
                 <button
                   type="submit"
-                  className="rounded-lg bg-slate-900 px-5 py-2.5 text-sm font-medium text-white hover:bg-slate-800"
+                  disabled={uploading}
+                  className="rounded-lg bg-slate-900 px-5 py-2.5 text-sm font-medium text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                  Add Document
+                  {uploading
+                    ? "Preparing..."
+                    : "Attach Document"}
                 </button>
               </div>
             </form>
