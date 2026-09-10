@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-
 import { FileText, Plus, Search, X, Paperclip } from "lucide-react";
 
 export default function DocumentsPage() {
@@ -26,86 +25,94 @@ export default function DocumentsPage() {
     notes: "",
   });
 
-  async function loadData() {
-    try {
-      setLoading(true);
+  useEffect(() => {
+    async function loadClients() {
+      try {
+        const response = await fetch("/api/clients", {
+          cache: "no-store",
+        });
 
-      const [
-        documentsResponse,
-        clientsResponse,
-        engagementsResponse,
-        filingsResponse,
-      ] = await Promise.all([
-        fetch("/api/documents"),
-        fetch("/api/clients"),
-        fetch("/api/engagements"),
-        fetch("/api/filings"),
-      ]);
+        const data = await response.json();
 
-      const documentsData = await documentsResponse.json();
+        if (!response.ok) {
+          console.error("CLIENT API ERROR:", data);
+          return;
+        }
 
-      const clientsData = await clientsResponse.json();
+        const clientList = Array.isArray(data) ? data : data.clients || [];
 
-      const engagementsData = await engagementsResponse.json();
+        setClients(clientList);
 
-      const filingsData = await filingsResponse.json();
-
-      if (!documentsResponse.ok) {
-        throw new Error(documentsData.error || "Unable to load documents");
+        console.log("DOCUMENTS CLIENTS LOADED:", clientList.length);
+      } catch (error) {
+        console.error("CLIENT LOADING ERROR:", error);
       }
-
-      if (!clientsResponse.ok) {
-        throw new Error(clientsData.error || "Unable to load clients");
-      }
-
-      if (!engagementsResponse.ok) {
-        throw new Error(engagementsData.error || "Unable to load engagements");
-      }
-
-      if (!filingsResponse.ok) {
-        throw new Error(filingsData.error || "Unable to load filings");
-      }
-
-      // Documents
-      setDocuments(
-        Array.isArray(documentsData)
-          ? documentsData
-          : documentsData.documents || [],
-      );
-
-      // Clients
-      const clientList = Array.isArray(clientsData)
-        ? clientsData
-        : clientsData.clients || [];
-
-      setClients(clientList);
-
-      // Engagements
-      setEngagements(
-        Array.isArray(engagementsData)
-          ? engagementsData
-          : engagementsData.engagements || [],
-      );
-
-      // Filings
-      setFilings(
-        Array.isArray(filingsData) ? filingsData : filingsData.filings || [],
-      );
-
-      console.log("DOCUMENTS PAGE CLIENTS:", clientList.length, clientList);
-    } catch (error) {
-      console.error("Unable to load documents data:", error);
-    } finally {
-      setLoading(false);
     }
-  }
+
+    loadClients();
+  }, []);
 
   useEffect(() => {
-    const loadInitialData = async () => {
-      await loadData();
-    };
+    async function loadOtherData() {
+      try {
+        setLoading(true);
 
-    loadInitialData();
+        const [documentsResponse, engagementsResponse, filingsResponse] =
+          await Promise.all([
+            fetch("/api/documents", {
+              cache: "no-store",
+            }),
+            fetch("/api/engagements", {
+              cache: "no-store",
+            }),
+            fetch("/api/filings", {
+              cache: "no-store",
+            }),
+          ]);
+
+        const documentsData = await documentsResponse.json();
+
+        const engagementsData = await engagementsResponse.json();
+
+        const filingsData = await filingsResponse.json();
+
+        if (documentsResponse.ok) {
+          setDocuments(
+            Array.isArray(documentsData)
+              ? documentsData
+              : documentsData.documents || [],
+          );
+        } else {
+          console.error("DOCUMENT API ERROR:", documentsData);
+        }
+
+        if (engagementsResponse.ok) {
+          setEngagements(
+            Array.isArray(engagementsData)
+              ? engagementsData
+              : engagementsData.engagements || [],
+          );
+        } else {
+          console.error("ENGAGEMENT API ERROR:", engagementsData);
+        }
+
+        if (filingsResponse.ok) {
+          setFilings(
+            Array.isArray(filingsData)
+              ? filingsData
+              : filingsData.filings || [],
+          );
+        } else {
+          console.error("FILING API ERROR:", filingsData);
+        }
+      } catch (error) {
+        console.error("DOCUMENT PAGE LOADING ERROR:", error);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadOtherData();
   }, []);
 
   const filteredDocuments = useMemo(() => {
@@ -178,11 +185,6 @@ export default function DocumentsPage() {
 
     try {
       setUploading(true);
-
-      /*
-       * Actual secure file upload will be connected
-       * to Vercel Blob in the next step.
-       */
 
       alert(
         "File selected successfully. Secure file storage will be connected next.",
@@ -425,6 +427,12 @@ export default function DocumentsPage() {
                     </option>
                   ))}
                 </select>
+
+                {clients.length === 0 && (
+                  <p className="mt-2 text-xs text-red-500">
+                    No clients available.
+                  </p>
+                )}
               </div>
 
               <div className="grid gap-5 sm:grid-cols-2">
